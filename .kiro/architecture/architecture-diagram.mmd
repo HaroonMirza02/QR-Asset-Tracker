@@ -1,0 +1,89 @@
+%%  Vision71 – Reusable B2B Asset Tracking Foundation
+%%  Architecture Diagram
+%%  Render with: https://mermaid.live  or any Mermaid-compatible tool
+
+flowchart TD
+
+    %% ── Actors ──────────────────────────────────────────────────────────────
+    PU([Public User\nsmartphone / browser])
+    AU([Authenticated Staff\nbrowser])
+
+    %% ── Frontend Layer ───────────────────────────────────────────────────────
+    subgraph FE["Frontend (React SPA)"]
+        ScanPage["Scan Landing Page\n/scan/:qrToken"]
+        AdminUI["Admin Dashboard\n/assets, /employees, /locations"]
+        LoginPage["Login Page\n/login"]
+    end
+
+    %% ── API Gateway / Express ────────────────────────────────────────────────
+    subgraph API["API Layer (Node.js + Express)"]
+        PublicRouter["Public Router\n/api/public/*"]
+        AuthRouter["Auth Router\n/api/auth/*"]
+        AssetRouter["Asset Router\n/api/assets/*"]
+        EmpRouter["Employee Router\n/api/employees/*"]
+        LocRouter["Location Router\n/api/locations/*"]
+        AuthMW["Auth Middleware\nJWT verify + tenant extract"]
+        RoleMW["Role Guard\nAdmin / Viewer checks"]
+        ValidMW["Input Validator\nZod schemas"]
+    end
+
+    %% ── Service Layer ────────────────────────────────────────────────────────
+    subgraph SVC["Service Layer"]
+        AssetSvc["Asset Service\nassign / unassign / status / CRUD"]
+        QRSvc["QR Service\ngenerate token / build URL / regenerate"]
+        HistorySvc["History Service\nappend-only log writer"]
+        AuthSvc["Auth Service\nJWT issue / bcrypt verify"]
+        TenantSvc["Tenant Resolver\ntenant from JWT or slug"]
+    end
+
+    %% ── Data Layer ───────────────────────────────────────────────────────────
+    subgraph DB["MongoDB (per-tenant scoped collections)"]
+        AssetCol[(Assets)]
+        HistCol[(AssetHistory)]
+        EmpCol[(Employees)]
+        LocCol[(Locations)]
+        UserCol[(Users)]
+        TenantCol[(Tenants)]
+    end
+
+    %% ── QR Infrastructure ────────────────────────────────────────────────────
+    subgraph QR["QR Generation"]
+        QRLib["qrcode npm package\nencodes scan URL"]
+        TokenGen["crypto.randomBytes(32)\nhex token stored as qrToken"]
+    end
+
+    %% ── Public scan path ─────────────────────────────────────────────────────
+    PU -->|"scans QR → opens"| ScanPage
+    ScanPage -->|"GET /api/public/scan/:qrToken"| PublicRouter
+    PublicRouter --> TenantSvc
+    PublicRouter --> AssetSvc
+    AssetSvc -->|"find by qrToken + tenantId"| AssetCol
+    AssetSvc --> HistorySvc
+    HistorySvc --> HistCol
+
+    %% ── Authenticated admin path ─────────────────────────────────────────────
+    AU -->|"POST /api/auth/login"| AuthRouter
+    AuthRouter --> AuthSvc
+    AuthSvc --> UserCol
+    AuthSvc -->|"JWT (tenantId, userId, role)"| AU
+
+    AU -->|"bearer token"| AdminUI
+    AdminUI -->|"API calls"| AuthMW
+    AuthMW --> RoleMW
+    RoleMW --> ValidMW
+    ValidMW --> AssetRouter
+    ValidMW --> EmpRouter
+    ValidMW --> LocRouter
+
+    AssetRouter --> AssetSvc
+    AssetRouter --> QRSvc
+    EmpRouter --> EmpCol
+    LocRouter --> LocCol
+
+    AssetSvc --> AssetCol
+    AssetSvc --> HistorySvc
+    QRSvc --> TokenGen
+    QRSvc --> QRLib
+    QRSvc --> AssetCol
+
+    TenantSvc --> TenantCol
