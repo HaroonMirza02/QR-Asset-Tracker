@@ -119,6 +119,10 @@ async function seed() {
       Location.deleteMany({ tenantId: tid }),
       User.deleteMany({ tenantId: tid }),
     ]);
+    // Ensure tenant is active
+    tenant.isActive = true;
+    await tenant.save();
+    console.log(`[seed] Tenant data cleared. Reusing tenant _id: ${tid}`);
   } else {
     tenant = await Tenant.create({
       name: 'Meridian Operational Services',
