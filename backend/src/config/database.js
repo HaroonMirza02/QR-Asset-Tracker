@@ -14,6 +14,11 @@ async function connectDB() {
     );
   }
 
+  // Reuse existing connection if connected in serverless container
+  if (mongoose.connection.readyState >= 1) {
+    return;
+  }
+
   await mongoose.connect(uri);
 
   if (process.env.NODE_ENV !== 'test') {
