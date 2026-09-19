@@ -1,128 +1,23 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowRight, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { Alert } from '../components/common/Alert';
-import { QrCode, Lock, Mail, ArrowRight } from 'lucide-react';
-
-export const LoginPage: React.FC = () => {
-  const navigate = useNavigate();
+import { Brand } from './Brand';
+import './LandingPage.css';
+export function LoginPage() {
   const { login, authError, clearAuthError } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) return;
-
+  const navigate = useNavigate();
+  const [busy, setBusy] = useState(false);
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault(); clearAuthError(); setBusy(true);
+    const form = new FormData(event.currentTarget);
     try {
-      setLoading(true);
-      await login({ email: email.trim(), password });
-      navigate('/assets');
-    } catch (err) {
-      // Error handled by AuthContext and shown via authError
-    } finally {
-      setLoading(false);
-    }
-  };
+      await login({ email: String(form.get('email')).trim(), password: String(form.get('password')) });
+      navigate('/assets', { replace: true });
+    } catch { /* AuthContext exposes the server error. */ } finally { setBusy(false); }
+  }
+  return <main className="lp-auth"><aside className="lp-auth-aside"><Brand /><div><span className="lp-eyebrow">EVERYTHING, RIGHT WHERE YOU LEFT IT.</span><h1>Welcome back to<br /><span className="lp-serif">a little more order.</span></h1><p>Your assets, your people, your places. Pick up where you left off in one connected workspace.</p><img src="/images/eztrack-devices-hd.webp" srcSet="/images/eztrack-devices-mobile.webp 960w, /images/eztrack-devices-hd.webp 1536w" sizes="(max-width: 760px) 100vw, 750px" width="1536" height="1024" alt="Asset tracking on a laptop and phone" /></div><small>Every asset has a place. Find yours.</small></aside><div className="lp-auth-main"><form className="lp-auth-form" onSubmit={submit}><div className="lp-auth-mobile-brand"><Brand /></div><h2>Good to see you again.</h2><p>Log in to your asset workspace.</p>{authError && <div className="lp-auth-error" role="alert">{authError}</div>}<label htmlFor="login-email">Email address<input id="login-email" name="email" type="email" autoComplete="username" placeholder="you@company.com" required /></label><label htmlFor="login-password">Password<input id="login-password" name="password" type="password" autoComplete="current-password" placeholder="Your password" required /></label><button className="lp-button" disabled={busy}>{busy ? 'Signing in…' : 'Log in'}<ArrowRight size={17} /></button><span className="lp-auth-note"><ShieldCheck size={13} />Secure access to your organization’s assets.</span><p className="lp-auth-switch">New here? <Link to="/signup">Create a workspace</Link></p><details className="lp-demo-credentials"><summary>Just exploring? Use a demo account.</summary><p><strong>Admin</strong><br />admin@meridian-ops.example<br /><code>Admin1234!</code></p><p><strong>Viewer</strong><br />viewer@meridian-ops.example<br /><code>Viewer1234!</code></p></details></form></div></main>;
+}
 
-  return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 sm:p-6 font-sans relative overflow-hidden">
-      {/* Background ambient glow */}
-      <div className="absolute -top-40 -left-40 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="w-full max-w-md bg-white/95 backdrop-blur-xl rounded-3xl p-6 sm:p-8 shadow-2xl border border-white/20 relative z-10 animate-in fade-in zoom-in-95 duration-300">
-        {/* Brand header */}
-        <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center mx-auto mb-4 shadow-xl shadow-indigo-600/30">
-            <QrCode className="w-8 h-8" />
-          </div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-            QR Asset Tracker
-          </h1>
-          <p className="text-xs font-semibold text-slate-400 mt-1 uppercase tracking-wider">
-            B2B Enterprise Portal Sign In
-          </p>
-        </div>
 
-        {authError && (
-          <Alert
-            type="error"
-            message={authError}
-            className="mb-6"
-            onDismiss={clearAuthError}
-          />
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-              Email Address
-            </label>
-            <div className="relative flex items-center">
-              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="e.g. admin@meridian-ops.example"
-                className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-              Password
-            </label>
-            <div className="relative flex items-center">
-              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••••••"
-                className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all"
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-lg shadow-indigo-600/30 disabled:opacity-50 transition-all duration-200 mt-2"
-          >
-            {loading ? (
-              <span>Signing in...</span>
-            ) : (
-              <>
-                <span>Sign In to Dashboard</span>
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
-          </button>
-        </form>
-
-        {/* Demo Credentials Box */}
-        <div className="mt-8 pt-6 border-t border-slate-100 bg-slate-50/80 -mx-6 sm:-mx-8 -mb-6 sm:-mb-8 p-6 rounded-b-3xl text-left">
-          <p className="text-xs font-extrabold text-slate-700 uppercase tracking-wider mb-2">
-            Demo Credentials
-          </p>
-          <div className="space-y-1.5 text-xs text-slate-600">
-            <p>
-              <span className="font-bold text-slate-800">Admin Role:</span>{' '}
-              <code className="bg-white px-1.5 py-0.5 rounded border border-slate-200 font-mono">admin@meridian-ops.example</code> / <code className="bg-white px-1.5 py-0.5 rounded border border-slate-200 font-mono">Admin1234!</code>
-            </p>
-            <p>
-              <span className="font-bold text-slate-800">Viewer Role:</span>{' '}
-              <code className="bg-white px-1.5 py-0.5 rounded border border-slate-200 font-mono">viewer@meridian-ops.example</code> / <code className="bg-white px-1.5 py-0.5 rounded border border-slate-200 font-mono">Viewer1234!</code>
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};

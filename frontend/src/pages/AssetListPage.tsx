@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { listAssetsApi, ListAssetsParams } from '../api/assets';
 import { Asset } from '../types/asset';
 import { ApiMeta } from '../types/api';
@@ -43,22 +43,28 @@ export const AssetListPage: React.FC = () => {
   });
   const [statusOpen, setStatusOpen] = useState(false);
 
+  const requestRef = useRef<AbortController | null>(null);
   const fetchAssets = useCallback(async () => {
+    requestRef.current?.abort();
+    const controller = new AbortController(); requestRef.current = controller;
     try {
       setLoading(true);
       setError(null);
-      const res = await listAssetsApi(filters);
+      const res = await listAssetsApi(filters, controller.signal);
+      if (controller.signal.aborted) return;
       setAssets(res.data);
       setMeta(res.meta);
     } catch (err: any) {
+      if (controller.signal.aborted) return;
       setError('Failed to fetch assets list. Please check your backend connection.');
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
   }, [filters]);
 
   useEffect(() => {
     fetchAssets();
+    return () => requestRef.current?.abort();
   }, [fetchAssets]);
 
   const handleFilterChange = (newFilters: Partial<ListAssetsParams>) => {
@@ -235,3 +241,4 @@ export const AssetListPage: React.FC = () => {
     </div>
   );
 };
+

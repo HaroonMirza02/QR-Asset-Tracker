@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, LoginPayload } from '../types/auth';
+import { apiClient } from '../api/client';
 import { loginApi } from '../api/auth';
 import { getErrorMessage } from '../api/client';
 
@@ -11,6 +12,7 @@ interface AuthContextType {
   isViewer: boolean;
   authError: string | null;
   login: (credentials: LoginPayload) => Promise<void>;
+  signup: (details: LoginPayload & { name: string; organization: string }) => Promise<void>;
   logout: () => void;
   clearAuthError: () => void;
 }
@@ -21,7 +23,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('qr_auth_token'));
   const [user, setUser] = useState<User | null>(() => {
     const raw = localStorage.getItem('qr_auth_user');
-    return raw ? JSON.parse(raw) : null;
+    try { return raw ? JSON.parse(raw) : null; } catch { return null; }
   });
   const [authError, setAuthError] = useState<string | null>(() => localStorage.getItem('qr_auth_error'));
 
@@ -53,6 +55,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const signup = async (details: LoginPayload & { name: string; organization: string }) => {
+    const response = await apiClient.post('/api/auth/signup', details);
+    const data = response.data.data;
+    localStorage.setItem('qr_auth_token', data.token);
+    localStorage.setItem('qr_auth_user', JSON.stringify(data.user));
+    localStorage.removeItem('qr_auth_error');
+    setToken(data.token);
+    setUser(data.user);
+    setAuthError(null);
+  };
+
   const logout = () => {
     setToken(null);
     setUser(null);
@@ -81,6 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authError,
         login,
         logout,
+        signup,
         clearAuthError,
       }}
     >
@@ -96,3 +110,4 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
+

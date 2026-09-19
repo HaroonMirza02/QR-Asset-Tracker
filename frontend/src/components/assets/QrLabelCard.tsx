@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import QRCode from 'qrcode';
+
 import { Asset } from '../../types/asset';
 import { QrCode } from 'lucide-react';
 
@@ -12,29 +12,31 @@ interface QrLabelCardProps {
 export const QrLabelCard: React.FC<QrLabelCardProps> = ({ asset, className = '', id = 'printable-qr-label' }) => {
   const [qrImage, setQrImage] = useState<string | null>(null);
 
+  const [qrError, setQrError] = useState(false);
   useEffect(() => {
+    let active = true; setQrImage(null); setQrError(false);
     async function generateQr() {
       if (asset.qrCodeImageBase64) {
         setQrImage(asset.qrCodeImageBase64);
         return;
       }
       try {
-        let scanUrl = asset.qrCodeUrl;
-        if (!scanUrl || scanUrl.includes('localhost')) {
-          scanUrl = `${window.location.origin}/scan/${asset.qrToken || 'unknown'}?t=${(asset as any).tenantId || ''}`;
-        }
+        const scanUrl = asset.qrCodeUrl;
+        if (!scanUrl) throw new Error('Asset scan URL is unavailable.');
+        const { default: QRCode } = await import('qrcode');
         const url = await QRCode.toDataURL(scanUrl, {
           type: 'image/png',
-          width: 320,
+          width: 640,
           margin: 2,
           errorCorrectionLevel: 'M',
         });
-        setQrImage(url);
+        if (active) setQrImage(url);
       } catch (err) {
-        console.error('Failed to generate QR image:', err);
+        if (active) setQrError(true);
       }
     }
     generateQr();
+    return () => { active = false; };
   }, [asset]);
 
   const displaySrc = qrImage || asset.qrCodeImageBase64;
@@ -47,11 +49,11 @@ export const QrLabelCard: React.FC<QrLabelCardProps> = ({ asset, className = '',
       {/* Header Bar */}
       <div className="flex items-center justify-between gap-2 border-b-2 border-slate-900 pb-3 min-w-0">
         <div className="flex items-center gap-1.5 min-w-0 shrink">
-          <div className="w-6 h-6 rounded-md bg-slate-900 text-white flex items-center justify-center font-black text-[10px] tracking-wider shrink-0">
-            QR
+          <div className="w-6 h-6 flex items-center justify-center shrink-0">
+            <img src="/images/eztrack-logo-ui.png" alt="" className="w-8 h-8 max-w-none" />
           </div>
           <span className="font-black text-xs tracking-wider text-slate-900 uppercase truncate">
-            ASSET TAG
+            EZTrack
           </span>
         </div>
         <span className="font-mono font-black text-xs sm:text-sm text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200 shrink-0 max-w-[140px] truncate">
@@ -70,7 +72,7 @@ export const QrLabelCard: React.FC<QrLabelCardProps> = ({ asset, className = '',
         ) : (
           <div className="w-52 h-52 bg-slate-50 border border-slate-200 rounded-xl flex flex-col items-center justify-center text-slate-400 p-4">
             <QrCode className="w-12 h-12 mb-2 stroke-1 animate-pulse" />
-            <p className="text-xs font-semibold text-center">Generating QR Image...</p>
+            <p className="text-xs font-semibold text-center">{qrError ? 'QR unavailable. Close and reopen this asset to try again.' : 'Generating QR Image...'}</p>
           </div>
         )}
       </div>
@@ -95,3 +97,6 @@ export const QrLabelCard: React.FC<QrLabelCardProps> = ({ asset, className = '',
     </div>
   );
 };
+
+
+

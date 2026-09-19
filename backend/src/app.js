@@ -15,6 +15,8 @@ const locationRouter = require('./routes/location.routes');
 
 app.use('/api/public', publicRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/auth', require('./routes/signup.routes'));
+app.use('/api/public', require('./routes/demo.routes'));
 app.use('/api/assets', assetRouter);
 app.use('/api/employees', employeeRouter);
 app.use('/api/locations', locationRouter);

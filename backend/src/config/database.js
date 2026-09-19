@@ -22,7 +22,7 @@ async function connectDB() {
   await mongoose.connect(uri);
 
   if (process.env.NODE_ENV !== 'test') {
-    console.log(`[db] Connected to MongoDB: ${uri}`);
+    console.log('[db] Connected to MongoDB');
   }
 }
 

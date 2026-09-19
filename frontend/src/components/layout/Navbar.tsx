@@ -27,12 +27,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
           )}
 
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-700 flex items-center justify-center text-white shadow-md shadow-indigo-600/20">
-              <QrCode className="w-5 h-5" />
+            <div className="w-10 h-10 flex items-center justify-center">
+              <img src="/images/eztrack-logo-ui.png" alt="" className="w-12 h-12 max-w-none" />
             </div>
             <div>
               <span className="font-extrabold text-slate-900 text-base tracking-tight leading-none block">
-                QR Asset Tracker
+                EZTrack
               </span>
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mt-0.5">
                 Enterprise B2B
@@ -71,3 +71,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
     </header>
   );
 };
+
+
+

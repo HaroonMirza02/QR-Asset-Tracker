@@ -21,9 +21,9 @@ export interface ListAssetsParams {
   isPublicVisible?: boolean;
 }
 
-export async function listAssetsApi(params: ListAssetsParams = {}): Promise<ApiResponse<Asset[]>> {
+export async function listAssetsApi(params: ListAssetsParams = {}, signal?: AbortSignal): Promise<ApiResponse<Asset[]>> {
   const cleaned = cleanParams(params);
-  const res = await apiClient.get<ApiResponse<Asset[]>>('/api/assets', { params: cleaned });
+  const res = await apiClient.get<ApiResponse<Asset[]>>('/api/assets', { params: cleaned, signal });
   return res.data;
 }
 
@@ -85,3 +85,4 @@ export async function getAssetHistoryApi(
   });
   return res.data;
 }
+

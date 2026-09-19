@@ -45,6 +45,9 @@ export function getErrorMessage(error: any): string {
   if (axios.isAxiosError(error) && error.response?.data?.error?.message) {
     return error.response.data.error.message;
   }
+  if (axios.isAxiosError(error) && (!error.response || [502, 503, 504].includes(error.response.status))) {
+    return 'Cannot reach the backend. Check that the API server is running and connected to MongoDB, then try again.';
+  }
   return error?.message || 'An unexpected error occurred. Please try again.';
 }
 

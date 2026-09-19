@@ -6,9 +6,9 @@
  * What is created:
  *   - 1 tenant (generic, not tied to any real company)
  *   - 1 Admin user + 1 Viewer user
- *   - 8 employees across several departments
- *   - 5 locations across several types
- *   - 24 assets across all 5 categories, covering every status value, with
+ *   - 16 employees across several departments
+ *   - 10 locations across several types
+ *   - 60 assets across all 5 categories, covering every status value, with
  *     a mix of public/private visibility and a mix of assignment states
  *
  * Run:
@@ -21,7 +21,7 @@
  * Credentials printed to stdout on completion so they are easy to copy.
  */
 
-require('dotenv').config();
+require('../config/environment');
 
 const mongoose = require('mongoose');
 const { connectDB, disconnectDB } = require('../config/database');
@@ -103,6 +103,11 @@ const ASSET_SEED = [
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
+const expansion = require('./demoExpansion');
+EMPLOYEE_SEED.push(...expansion.employees);
+LOCATION_SEED.push(...expansion.locations);
+ASSET_SEED.push(...expansion.assets);
+
 async function seed() {
   await connectDB();
   console.log('\n[seed] Connected to database.\n');
@@ -177,7 +182,12 @@ async function seed() {
       assignedLocationId = locationDocs[def.assignIdx]._id;
     }
 
+    const daysAgo = (days) => new Date(Date.now() - days * 86400000);
+    const receivedAt = daysAgo(200 + assetCount * 2);
+    const changedAt = daysAgo(10 + assetCount);
     const asset = await Asset.create({
+      createdAt: receivedAt,
+      updatedAt: def.status === 'Available' ? receivedAt : changedAt,
       tenantId,
       qrToken,
       assetCode,
@@ -197,9 +207,10 @@ async function seed() {
       assetId: asset._id,
       eventType: 'Created',
       previousValue: {},
-      newValue: { assetCode, name: def.name, status: def.status },
+      newValue: { assetCode, name: def.name, status: 'Available' },
       performedBy: systemUserId,
-      note: 'Initial seed',
+      note: 'Received, inspected and entered into the equipment register.',
+      createdAt: receivedAt,
     });
 
     // Assignment history record (if assigned)
@@ -211,7 +222,8 @@ async function seed() {
         previousValue: { assignedEmployeeId: null, assignedLocationId: null },
         newValue: { assignedEmployeeId: assignedEmployeeId.toString(), assignedLocationId: null },
         performedBy: systemUserId,
-        note: 'Assigned during initial seed',
+        note: 'Issued after equipment handover and condition check.',
+        createdAt: changedAt,
       });
     } else if (assignedLocationId) {
       assetHistoryRecords.push({
@@ -221,12 +233,13 @@ async function seed() {
         previousValue: { assignedEmployeeId: null, assignedLocationId: null },
         newValue: { assignedEmployeeId: null, assignedLocationId: assignedLocationId.toString() },
         performedBy: systemUserId,
-        note: 'Assigned during initial seed',
+        note: 'Issued after equipment handover and condition check.',
+        createdAt: changedAt,
       });
     }
 
     // Status history for non-Available assets
-    if (def.status !== 'Available') {
+    if (!['Available', 'Assigned'].includes(def.status)) {
       assetHistoryRecords.push({
         tenantId,
         assetId: asset._id,
@@ -234,7 +247,8 @@ async function seed() {
         previousValue: { status: 'Available' },
         newValue: { status: def.status },
         performedBy: systemUserId,
-        note: 'Status set during initial seed',
+        note: def.status === 'In Repair' ? 'Removed from service for inspection and repair; awaiting technician assessment.' : def.status === 'Lost' ? 'Not located during the stock check; investigation opened.' : 'Decommissioned after end-of-life assessment; awaiting responsible disposal.',
+        createdAt: changedAt,
       });
     }
   }
@@ -272,3 +286,4 @@ seed().catch((err) => {
   console.error('[seed] Fatal error:', err);
   process.exit(1);
 });
+

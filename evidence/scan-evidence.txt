@@ -1,0 +1,2 @@
+Valid scan URL: http://localhost:5173/scan/20406e46cb32c6b06fdf901a86b5a15c33e05fd61adb681ce796045421a9c507?t=6a9e45e43371bd32d69d7ab3
+Invalid scan URL: http://localhost:5173/scan/not-a-token?t=6a9e45e43371bd32d69d7ab3

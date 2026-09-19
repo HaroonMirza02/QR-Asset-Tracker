@@ -72,7 +72,7 @@ export const AssetDetailPage: React.FC = () => {
       setAssignedLocation(null);
 
       // 1. Fetch asset (request includeQrImage=true if Admin)
-      const data = await getAssetByIdApi(id, { includeQrImage: isAdmin });
+      const data = await getAssetByIdApi(id);
       setAsset(data);
 
       // 2. Resolve Raw ObjectIds if assigned
@@ -444,3 +444,4 @@ export const AssetDetailPage: React.FC = () => {
     </div>
   );
 };
+
